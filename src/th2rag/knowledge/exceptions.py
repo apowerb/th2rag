@@ -1,0 +1,2 @@
+class KnowledgeNotFoundException(Exception):
+    pass
