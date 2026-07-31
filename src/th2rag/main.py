@@ -18,9 +18,9 @@ print(f"BYPASS_AUTH setting: {settings.bypass_auth}")
 
 logger = getLogger(__name__)
 
-# Resolu depuis le module, pas depuis le repertoire courant : une librairie
-# publiee doit s'importer de n'importe ou. Les assets voyagent dans le wheel.
-STATIQUES = Path(__file__).parent / "static"
+# Resolved from the module, not the current working directory: a published
+# library must be importable from anywhere. Assets travel inside the wheel.
+STATIC_DIR = Path(__file__).parent / "static"
 
 
 os.getenv("SHINYPROXY_PUBLIC_PATH")
@@ -34,12 +34,12 @@ logger.info("Route Path is {route_path}")
 
 app = FastAPI(root_path = route_path)
 # Mount static files directory (optional, for other static assets)
-app.mount("/static", StaticFiles(directory=STATIQUES), name="static")
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 # Add favicon endpoint
 @app.get('/favicon.ico', include_in_schema=False)
 async def favicon():
-    return FileResponse(STATIQUES / "favicon.ico")
+    return FileResponse(STATIC_DIR / "favicon.ico")
 
 
 app.include_router(auth_router)
