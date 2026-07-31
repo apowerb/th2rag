@@ -20,7 +20,7 @@ class LanceDBStorage:
 
     def add_chunks(self, chunks: list[dict]) -> None:
         if not chunks:
-            logger.warning("add_chunks appelé avec une liste vide — no-op")
+            logger.warning("add_chunks called with an empty list — no-op")
             return
         try:
             self.table.add(chunks)

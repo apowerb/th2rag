@@ -109,7 +109,7 @@ class TestUploadRejectionUnknownExtension:
             validate_upload_extension(".xyz")
 
         error_msg = str(exc_info.value)
-        assert "Formats acceptés" in error_msg or "Supported" in error_msg or "acceptés" in error_msg
+        assert "Supported formats" in error_msg
 
     def test_supported_extension_does_not_raise(self):
         """

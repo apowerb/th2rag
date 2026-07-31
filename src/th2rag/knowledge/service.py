@@ -92,26 +92,26 @@ async def get_knowledge_by_id(knowledge_id: int, db: AsyncSession) -> schemas.Kn
     return schemas.Knowledge.model_validate(knowledge)
 
 
-# Source unique de vérité pour les extensions acceptées à l'upload.
-# TOUTE extension ici DOIT être routable par convert_any_doc
-# (garde-fou permanent dans test/knowledge/test_lot4_whitelist.py).
-# Formats legacy (.doc/.ppt/.xls) nécessitent LibreOffice ;
-# sans lui, l'upload est rejeté avec un message explicite.
+# Single source of truth for the extensions accepted at upload time.
+# EVERY extension listed here MUST be routable by convert_any_doc
+# (permanent guardrail in test/knowledge/test_lot4_whitelist.py).
+# Legacy formats (.doc/.ppt/.xls) require LibreOffice; without it,
+# the upload is rejected with an explicit message.
 ALLOWED_EXTENSIONS: frozenset[str] = frozenset({
-    # Office natifs Docling
+    # Docling-native Office
     ".pdf",
     ".docx",
     ".pptx",
-    # Office legacy (via LibreOffice headless si installé)
+    # Legacy Office (through headless LibreOffice, if installed)
     ".doc",
     ".ppt",
     ".xls",
     # Spreadsheets
     ".csv",
     ".xlsx",
-    # Données structurées
+    # Structured data
     ".json",
-    # Texte brut
+    # Plain text
     ".txt",
     # Web / markup (Lot 2)
     ".html",
@@ -134,20 +134,20 @@ _ALLOWED_EXTENSIONS_STR: str = ", ".join(sorted(ALLOWED_EXTENSIONS))
 
 def validate_upload_extension(ext: str) -> None:
     """
-    Valide qu'une extension de fichier est supportée pour l'upload.
-    Lève ValueError avec message clair si non supportée.
-    À appeler AVANT création de la knowledge pour éviter un FAILED tardif.
+    Validate that a file extension is supported for upload.
+    Raises ValueError with a clear message when it is not.
+    Call it BEFORE creating the knowledge to avoid a late FAILED status.
 
     Args:
-        ext: Extension avec le point, ex: '.pdf', '.xyz'
+        ext: Extension including the dot, e.g. '.pdf', '.xyz'
 
     Raises:
-        ValueError: Si l'extension n'est pas dans ALLOWED_EXTENSIONS.
+        ValueError: If the extension is not in ALLOWED_EXTENSIONS.
     """
     if ext.lower() not in ALLOWED_EXTENSIONS:
         raise ValueError(
-            f"Format {ext} non supporté. "
-            f"Formats acceptés : {_ALLOWED_EXTENSIONS_STR}"
+            f"Format {ext} is not supported. "
+            f"Supported formats: {_ALLOWED_EXTENSIONS_STR}"
         )
 
 

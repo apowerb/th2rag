@@ -84,7 +84,7 @@ async def create_and_respond_message(
     db: AsyncSession,
     rag_service: RAGService, 
 ) -> schemas.Message:
-    # Récupération de la conversation
+    # Fetch the conversation
     conversation = await conversations_service.get_conversation_by_id(
         conversation_id=conversation_id, db=db
     )
@@ -107,7 +107,7 @@ async def create_and_respond_message(
                 detail="The knowledge base is currently being processed. Please wait a moment and try again."
             )
 
-    # Récupération de l'historique
+    # Fetch the history
     stmt = (
         select(Message)
         .where(Message.conversation_id == conversation_id)
@@ -159,7 +159,7 @@ async def create_and_respond_message(
 
         message_type = schemas.MessageType.TEXT
 
-    # Créer le message utilisateur
+    # Create the user message
     user_message = Message(
         conversation_id=conversation_id,
         content=message_in.content,
@@ -168,7 +168,7 @@ async def create_and_respond_message(
     )
     db.add(user_message)
 
-    # Créer le message système
+    # Create the system message
     system_message = Message(
         conversation_id=conversation_id,
         content=generated_text,

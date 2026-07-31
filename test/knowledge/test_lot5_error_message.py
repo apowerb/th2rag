@@ -109,11 +109,11 @@ async def test_update_knowledge_status_writes_error_message():
         knowledge_id=10,
         new_status=Status.FAILED,
         db=mock_db,
-        error_message="Document converti mais aucun texte extractible (0 chunks)",
+        error_message="Document converted but no extractable text (0 chunks)",
     )
 
     assert fake_knowledge.status == Status.FAILED
-    assert fake_knowledge.error_message == "Document converti mais aucun texte extractible (0 chunks)"
+    assert fake_knowledge.error_message == "Document converted but no extractable text (0 chunks)"
     mock_db.commit.assert_called_once()
 
 
@@ -297,7 +297,7 @@ async def test_process_pdfs_sync_partial_success_sets_error_message(monkeypatch)
     assert partial_call["error_message"] is not None, (
         "error_message doit être renseigné pour le succès partiel"
     )
-    assert "bad.pdf" in partial_call["error_message"] or "1/" in partial_call["error_message"] or "ignoré" in partial_call["error_message"], (
+    assert "bad.pdf" in partial_call["error_message"] or "1/" in partial_call["error_message"] or "skipped" in partial_call["error_message"], (
         f"error_message doit mentionner les fichiers échoués. Obtenu : {partial_call['error_message']!r}"
     )
 
