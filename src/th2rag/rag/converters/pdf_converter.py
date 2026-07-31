@@ -191,10 +191,10 @@ def _build_format_options(input_format: InputFormat, enable_ocr_flag: bool) -> d
     return {}
 
 
-# DocumentConverter charge des modeles PyTorch (layout / table-structure / OCR).
-# L instancier a chaque conversion provoquait, en lot concurrent, la meme race
-# meta-device que l embedding. On met en cache une instance par configuration
-# (input_format, ocr, restriction de formats) et on la reutilise sous verrou.
+# DocumentConverter loads PyTorch models (layout / table-structure / OCR).
+# Instantiating it on every conversion triggered, on concurrent batches, the same
+# meta-device race as the embedding model. We cache one instance per configuration
+# (input_format, ocr, format restriction) and reuse it under a lock.
 _CONVERTER_CACHE: dict = {}
 _CONVERTER_LOCK = threading.Lock()
 

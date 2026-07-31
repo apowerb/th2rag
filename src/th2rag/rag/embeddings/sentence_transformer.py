@@ -9,11 +9,10 @@ from th2rag.utils.logger import setup_logger
 
 logger = setup_logger(__name__)
 
-# Le modele est lourd (gtr-t5-large ~670 Mo). L instancier par tache/PDF
-# provoquait, en lot concurrent, la race accelerate/meta-device
-# "Cannot copy out of meta tensor; no data!" -> docs FAILED de facon
-# intermittente. On charge chaque (model_name, cache_folder) UNE fois,
-# sous verrou, et on partage l instance.
+# The model is heavy (gtr-t5-large ~670 MB). Instantiating it per task/PDF
+# triggered, on concurrent batches, the accelerate/meta-device race
+# "Cannot copy out of meta tensor; no data!" -> intermittently FAILED docs.
+# Each (model_name, cache_folder) is loaded ONCE, under a lock, and shared.
 _MODEL_CACHE: dict = {}
 _MODEL_CACHE_LOCK = threading.Lock()
 

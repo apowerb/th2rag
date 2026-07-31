@@ -43,7 +43,7 @@ def render_generic_content(obj: Any, prefix: str = "") -> str:
 
     Used when a document has none of the article fields (titre/chapeau/texte),
     so a plain JSON object or array still produces meaningful embedding content
-    instead of an empty métadonnée line.
+    instead of an empty metadata line.
     """
     lines: list[str] = []
     if isinstance(obj, dict):
@@ -93,7 +93,7 @@ def build_embedding_content(doc: dict, max_length: int = 512) -> str:
     if any(source.get(k) for k in _ARTICLE_MARKERS):
         # Article/JDS schema (even if title/body are empty): only the
         # whitelisted metadata is embedded — never a raw dump of _source.
-        parts.append(f"métadonnée {build_metadata(doc)}")
+        parts.append(f"metadata {build_metadata(doc)}")
     else:
         # Genuinely generic JSON object (no article markers): render its
         # keys/values so the content is embeddable instead of an empty line.

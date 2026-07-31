@@ -26,15 +26,15 @@ _ALL_SUPPORTED: list[str] = sorted(
 
 def _convert_legacy_with_soffice(source: str, doc_id: int | None) -> dict:
     """
-    Conversion via LibreOffice puis Docling.
-    Exposée séparément pour faciliter le mock dans les tests.
-    Lève ValueError si LibreOffice est absent ou si la conversion échoue.
+    Convert through LibreOffice, then Docling.
+    Exposed separately to make mocking easier in tests.
+    Raises ValueError if LibreOffice is missing or if the conversion fails.
     """
     converted_path = convert_with_libreoffice(source)
     try:
         result = convert_with_docling(source=converted_path, doc_id=doc_id)
     finally:
-        # Nettoyage du tmpdir créé par convert_with_libreoffice
+        # Clean up the tmpdir created by convert_with_libreoffice
         tmpdir = os.path.dirname(converted_path)
         try:
             import shutil
@@ -59,9 +59,9 @@ def convert_any_doc(source: str, doc_id: int = None) -> dict:
         JSON       → convert_json
         TXT        → convert_txt
 
-    Via LibreOffice + Docling (si LibreOffice installé) :
+    Via LibreOffice + Docling (if LibreOffice is installed):
         DOC → DOCX, PPT → PPTX, XLS → XLSX
-        Si LibreOffice absent : ValueError avec message explicite.
+        If LibreOffice is missing: ValueError with an explicit message.
     """
     if not os.path.exists(source):
         raise FileNotFoundError(f"Source file not found: {source}")

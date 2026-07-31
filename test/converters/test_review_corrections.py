@@ -102,7 +102,7 @@ class TestLegacyConverterTmpdirCleanup:
             with patch("tempfile.mkdtemp", side_effect=fake_mkdtemp), \
                  patch("shutil.which", return_value="/usr/bin/soffice"), \
                  patch("subprocess.run", return_value=fake_result):
-                with pytest.raises(ValueError, match="n'a pas produit"):
+                with pytest.raises(ValueError, match="did not produce"):
                     convert_with_libreoffice(source)
 
             assert "path" in captured_tmpdir
@@ -228,7 +228,7 @@ class TestErrorMessageNoS3Url:
 
         async def fake_process_single(doc_id, source, file_index, total_files):
             raise ValueError(
-                f"Document converti mais aucun texte extractible (0 chunks): {source}"
+                f"Document converted but no extractable text (0 chunks): {source}"
             )
 
         mock_processor_instance = MagicMock()

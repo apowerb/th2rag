@@ -41,12 +41,12 @@ def _build_partial_error_message(
         before the service-layer truncation).
     """
     count = len(failed_file_records)
-    lines = [f"{count}/{total} fichier(s) ignoré(s) lors de l'indexation :"]
+    lines = [f"{count}/{total} file(s) skipped during indexing:"]
     for rec in failed_file_records:
         source = rec.get("source", "?")
         filename = os.path.basename(source)
-        error = _strip_urls_from_error(rec.get("error", "raison inconnue"))
-        lines.append(f"  - {filename} : {error[:200]}")
+        error = _strip_urls_from_error(rec.get("error", "unknown reason"))
+        lines.append(f"  - {filename}: {error[:200]}")
     return "\n".join(lines)
 
 
@@ -156,11 +156,11 @@ class PDFProcessor:
             if chunk_count == 0:
                 logger.warning(
                     f"[Doc {doc_id}] [{file_index}/{total_files}] "
-                    f"Document converti mais aucun texte extractible (0 chunks) — "
-                    f"indexation abandonnée pour {os.path.basename(source)}"
+                    f"Document converted but no extractable text (0 chunks) — "
+                    f"indexing aborted for {os.path.basename(source)}"
                 )
                 raise ValueError(
-                    f"Document converti mais aucun texte extractible (0 chunks): {os.path.basename(source)}"
+                    f"Document converted but no extractable text (0 chunks): {os.path.basename(source)}"
                 )
 
             # Generate embeddings
@@ -306,11 +306,11 @@ async def process_pdfs_sync(
         if failed_files and not processed_files:
             # All files failed — use first error as representative message
             first_error = _strip_urls_from_error(
-                failed_files[0].get("error", "raison inconnue") if failed_files else ""
+                failed_files[0].get("error", "unknown reason") if failed_files else ""
             )
             all_failed_msg = (
-                f"{len(sources)}/{len(sources)} fichier(s) en échec. "
-                f"Première erreur : {first_error[:500]}"
+                f"{len(sources)}/{len(sources)} file(s) failed. "
+                f"First error: {first_error[:500]}"
             )
             await update_knowledge_status(
                 doc_id, Status.FAILED, db, error_message=all_failed_msg
@@ -491,8 +491,8 @@ def process_pdfs_background(
                         failed_file_records[0].get("error", "") if failed_file_records else ""
                     )
                     all_failed_msg = (
-                        f"{len(sources)}/{len(sources)} fichier(s) en échec. "
-                        f"Première erreur : {first_error[:500]}"
+                        f"{len(sources)}/{len(sources)} file(s) failed. "
+                        f"First error: {first_error[:500]}"
                     )
                     await update_knowledge_status(
                         doc_id, Status.FAILED, db_session, error_message=all_failed_msg
