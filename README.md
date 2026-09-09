@@ -950,4 +950,8 @@ pre-commit run --all-files
 
 ## 📄 License
 
-[Specify your license here]
+th2rag is distributed under the [Apache License 2.0](./LICENSE).
+Copyright 2025-2026 thaink².
+
+"apowerb" and "thaink²" are trademarks of thaink². The licence covers the code,
+not the marks — see [TRADEMARK.md](https://github.com/apowerb/apowerb/blob/main/TRADEMARK.md).

@@ -3,6 +3,8 @@ name = "th2rag"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
 authors = [
     { name = "Imene Boukhelkhal", email = "imene.boukhelkhal@thaink2.com" },
     { name = "David Gnaglo", email = "david.gnaglo@thaink2.com" },
