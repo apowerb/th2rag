@@ -20,7 +20,13 @@ Base = declarative_base(metadata=metadata)
 class DatabaseSessionManager:
     def __init__(self, host: str, engine_kwargs: dict[str, Any] = {}):
         self._engine = create_async_engine(
-            host, connect_args={"server_settings": {"jit": "off"}}, **engine_kwargs
+            host,
+            connect_args={"server_settings": {"jit": "off"}},
+            # A connection closed server-side while idle in the pool used to
+            # reach the next request and fail it with "connection is closed".
+            pool_pre_ping=True,
+            pool_recycle=300,
+            **engine_kwargs,
         )
         # self._sessionmaker = async_sessionmaker(autocommit=False, bind=self._engine)
         self._sessionmaker = sessionmaker(autocommit=False, bind=self._engine, class_=AsyncSession)
