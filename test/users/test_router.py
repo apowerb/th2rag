@@ -4,17 +4,14 @@ from httpx import AsyncClient
 from httpx._transports.asgi import ASGITransport
 
 from th2rag.database import get_db
+from th2rag.dependencies import get_current_user
 from th2rag.main import app
+from th2rag.users import schemas
 
 
-@pytest_asyncio.fixture(autouse=True)
-async def bypass_jwt_middleware():
-    original_middlewares = app.user_middleware.copy()
-    app.user_middleware = []
-    app.middleware_stack = app.build_middleware_stack()
-    yield
-    app.user_middleware = original_middlewares
-    app.middleware_stack = app.build_middleware_stack()
+def _authenticate_as(user: dict) -> None:
+    """The GET and DELETE routes require the owner (or an admin) to be signed in."""
+    app.dependency_overrides[get_current_user] = lambda: schemas.User(**user)
 
 
 @pytest_asyncio.fixture(autouse=True)
@@ -47,6 +44,7 @@ async def test_get_user_by_id_router():
         create_response = await client.post("/users/", json=payload)
         assert create_response.status_code == 201
         user = create_response.json()
+        _authenticate_as(user)
         user_id = user["user_id"]
         response = await client.get(f"/users/{user_id}")
         assert response.status_code == 200
@@ -62,6 +60,7 @@ async def test_get_user_by_email_router():
         create_response = await client.post("/users/", json=payload)
         assert create_response.status_code == 201
         user = create_response.json()
+        _authenticate_as(user)
         email = user["email"]
         response = await client.get(f"/users/email/{email}")
         assert response.status_code == 200
@@ -77,6 +76,7 @@ async def test_delete_user_by_id_router():
         create_response = await client.post("/users/", json=payload)
         assert create_response.status_code == 201
         user = create_response.json()
+        _authenticate_as(user)
         user_id = user["user_id"]
         del_response = await client.delete(f"/users/{user_id}")
         assert del_response.status_code == 204
@@ -92,6 +92,7 @@ async def test_delete_user_by_email_router():
         create_response = await client.post("/users/", json=payload)
         assert create_response.status_code == 201
         user = create_response.json()
+        _authenticate_as(user)
         email = user["email"]
         del_response = await client.delete(f"/users/email/{email}")
         assert del_response.status_code == 204
