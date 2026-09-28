@@ -7,6 +7,7 @@ from io import BytesIO
 from docling.datamodel.base_models import InputFormat
 from docling.datamodel.document import DocumentStream
 from docling.datamodel.pipeline_options import (
+    HeadingHierarchyOptions,
     PdfPipelineOptions,
     ThreadedPdfPipelineOptions,
 )
@@ -71,6 +72,11 @@ def get_pipeline_options(enable_ocr: bool) -> PdfPipelineOptions:
     options.table_structure_options.mode = "fast"
     options.do_ocr = enable_ocr
     options.generate_picture_images = True
+    # Without it every PDF heading is level 1 and chunks only carry the nearest
+    # heading. Levels come from bookmarks, numbering, then font style; the style
+    # signal needs the parsed cells, which are released with the ConversionResult.
+    options.heading_hierarchy_options = HeadingHierarchyOptions(enabled=True)
+    options.generate_parsed_pages = True
 
     if settings.handle_img_mode == "describe":
         options.do_picture_description = True
