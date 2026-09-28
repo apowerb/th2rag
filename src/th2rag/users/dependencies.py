@@ -20,7 +20,7 @@ async def require_user_owner_or_admin(
     requested_user: schemas.User = Depends(get_user_or_404),
     current: schemas.User = Depends(get_current_user),
 ) -> schemas.User:
-    if current.role != "admin" and current.user_id != requested_user.user_id:
+    if current.role != "ADMIN" and current.user_id != requested_user.user_id:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Not allowed")
     return requested_user
 
@@ -39,6 +39,6 @@ async def require_user_owner_or_admin_by_email(
     requested_user: schemas.User = Depends(get_user_by_email_or_404),
     current: schemas.User = Depends(get_current_user),
 ) -> schemas.User:
-    if current.role != "admin" and current.email != requested_user.email:
+    if current.role != "ADMIN" and current.email != requested_user.email:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Not authorized")
     return requested_user
