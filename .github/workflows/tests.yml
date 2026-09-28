@@ -1,0 +1,61 @@
+name: Tests
+
+# Runs the whole suite (test/ and tests/) on every pull request and on main.
+# Until this workflow, nothing ran it: the only checks were the CLA and the
+# PyPI publication, so a merge could break any test and nothing would say so.
+#
+# The suite needs no server: test/ uses an in-memory SQLite database, and the
+# settings below are inert values that only satisfy validation at import time.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    # A test process that never exits used to hang the suite after its summary
+    # (fixed in #10). The limit turns a regression of that kind into a red job
+    # instead of six hours of a runner doing nothing.
+    timeout-minutes: 30
+    permissions:
+      contents: read
+
+    # Settings are validated when th2rag is imported. DB_PORT and
+    # ACCESS_TOKEN_EXPIRE_MINUTES must be integers and S3_ENDPOINT a URL; the
+    # others only need to be non-empty. Nothing connects to these services.
+    env:
+      ACCESS_TOKEN_EXPIRE_MINUTES: "30"
+      DB_PORT: "5432"
+      S3_ENDPOINT: http://localhost:9000
+      ALGORITHM: HS256
+      DB_HOST: localhost
+      DB_NAME: test
+      DB_PASSWORD: test
+      DB_SCHEMA: test
+      DB_USER: test
+      ENCRYPT_KEY: test
+      MISTRAL_API_KEY: test
+      S3_ACCESS_KEY: test
+      S3_ACCESS_KEY_SECRET: test
+      S3_BUCKET_NAME: test
+      S3_REGION: test
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v9.0.0
+        with:
+          enable-cache: true
+
+      # --locked fails if uv.lock no longer matches pyproject.toml, instead of
+      # silently resolving other versions than the ones developers run.
+      - name: Install dependencies
+        run: uv sync --locked --python 3.13
+
+      - name: Run the tests
+        run: PYTHONPATH=src uv run pytest test tests -q --no-cov -p no:cacheprovider
