@@ -2,22 +2,29 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from th2rag.messages import schemas, service
-from th2rag.models import Conversation, Knowledge
+from th2rag.models import Conversation, FeebackType, Feedback, Knowledge, Status
 from th2rag.pagination import PageParams
 
 
 class DummyRAGService:
-    def answer_question(self, question: str, doc_id: int, limit: int) -> str:
+    def answer_question(self, question: str, doc_id: int, limit: int, prompt: str, history) -> str:
         return "This is a dummy answer."
 
 
 @pytest.mark.asyncio
-async def test_get_all_messages_empty(async_db: AsyncSession):
-    knowledge = Knowledge(name="Test Knowledge", knowledge_path="/path/to/knowledge")
+async def test_get_all_messages_empty(async_db: AsyncSession, db_user):
+    knowledge = Knowledge(
+        name="Test Knowledge",
+        knowledge_path="/path/to/knowledge",
+        user_id=db_user.user_id,
+        status=Status.COMPLETED,
+    )
     async_db.add(knowledge)
     await async_db.commit()
     await async_db.refresh(knowledge)
-    conv = Conversation(knowledge_id=knowledge.knowledge_id, title="Test Conversation")
+    conv = Conversation(
+        knowledge_id=knowledge.knowledge_id, title="Test Conversation", user_id=db_user.user_id
+    )
     async_db.add(conv)
     await async_db.commit()
     await async_db.refresh(conv)
@@ -30,12 +37,19 @@ async def test_get_all_messages_empty(async_db: AsyncSession):
 
 
 @pytest.mark.asyncio
-async def test_create_message(async_db: AsyncSession):
-    knowledge = Knowledge(name="Test Knowledge", knowledge_path="/path/to/knowledge")
+async def test_create_message(async_db: AsyncSession, db_user):
+    knowledge = Knowledge(
+        name="Test Knowledge",
+        knowledge_path="/path/to/knowledge",
+        user_id=db_user.user_id,
+        status=Status.COMPLETED,
+    )
     async_db.add(knowledge)
     await async_db.commit()
     await async_db.refresh(knowledge)
-    conv = Conversation(knowledge_id=knowledge.knowledge_id, title="Test Conversation")
+    conv = Conversation(
+        knowledge_id=knowledge.knowledge_id, title="Test Conversation", user_id=db_user.user_id
+    )
     async_db.add(conv)
     await async_db.commit()
     await async_db.refresh(conv)
@@ -48,12 +62,19 @@ async def test_create_message(async_db: AsyncSession):
 
 
 @pytest.mark.asyncio
-async def test_get_message_by_id(async_db: AsyncSession):
-    knowledge = Knowledge(name="Test Knowledge", knowledge_path="/path/to/knowledge")
+async def test_get_message_by_id(async_db: AsyncSession, db_user):
+    knowledge = Knowledge(
+        name="Test Knowledge",
+        knowledge_path="/path/to/knowledge",
+        user_id=db_user.user_id,
+        status=Status.COMPLETED,
+    )
     async_db.add(knowledge)
     await async_db.commit()
     await async_db.refresh(knowledge)
-    conv = Conversation(knowledge_id=knowledge.knowledge_id, title="Test Conversation")
+    conv = Conversation(
+        knowledge_id=knowledge.knowledge_id, title="Test Conversation", user_id=db_user.user_id
+    )
     async_db.add(conv)
     await async_db.commit()
     await async_db.refresh(conv)
@@ -68,12 +89,19 @@ async def test_get_message_by_id(async_db: AsyncSession):
 
 
 @pytest.mark.asyncio
-async def test_create_and_respond_message(async_db: AsyncSession):
-    knowledge = Knowledge(name="Test Knowledge", knowledge_path="/path/to/knowledge")
+async def test_create_and_respond_message(async_db: AsyncSession, db_user):
+    knowledge = Knowledge(
+        name="Test Knowledge",
+        knowledge_path="/path/to/knowledge",
+        user_id=db_user.user_id,
+        status=Status.COMPLETED,
+    )
     async_db.add(knowledge)
     await async_db.commit()
     await async_db.refresh(knowledge)
-    conv = Conversation(knowledge_id=knowledge.knowledge_id, title="Test Conversation")
+    conv = Conversation(
+        knowledge_id=knowledge.knowledge_id, title="Test Conversation", user_id=db_user.user_id
+    )
     async_db.add(conv)
     await async_db.commit()
     await async_db.refresh(conv)
@@ -81,19 +109,26 @@ async def test_create_and_respond_message(async_db: AsyncSession):
     user_message_in = schemas.MessageCreate(content="What is AI?", sender="USER")
     dummy_rag = DummyRAGService()
     system_message = await service.create_and_respond_message(
-        conversation_id, user_message_in, dummy_rag, async_db
+        conversation_id, user_message_in, async_db, dummy_rag
     )
     assert system_message.sender == "SYSTEM"
     assert system_message.content == "This is a dummy answer."
 
 
 @pytest.mark.asyncio
-async def test_add_feedback_to_message(async_db: AsyncSession):
-    knowledge = Knowledge(name="Test Knowledge", knowledge_path="/path/to/knowledge")
+async def test_add_feedback_to_message(async_db: AsyncSession, db_user):
+    knowledge = Knowledge(
+        name="Test Knowledge",
+        knowledge_path="/path/to/knowledge",
+        user_id=db_user.user_id,
+        status=Status.COMPLETED,
+    )
     async_db.add(knowledge)
     await async_db.commit()
     await async_db.refresh(knowledge)
-    conv = Conversation(knowledge_id=knowledge.knowledge_id, title="Test Conversation")
+    conv = Conversation(
+        knowledge_id=knowledge.knowledge_id, title="Test Conversation", user_id=db_user.user_id
+    )
     async_db.add(conv)
     await async_db.commit()
     await async_db.refresh(conv)
@@ -104,7 +139,10 @@ async def test_add_feedback_to_message(async_db: AsyncSession):
     updated_message = await service.add_feedback_to_message(
         conversation_id, created_message.message_id, feedback_in, async_db
     )
-    assert updated_message.feedback is not None
-    assert updated_message.feedback.feedback_type == "A"
-    assert updated_message.feedback.like is True
-    assert updated_message.feedback.reason == "Good message"
+    assert updated_message.message_id == created_message.message_id
+    # The Message schema no longer exposes feedback: check what was stored.
+    feedback = await async_db.get(Feedback, created_message.message_id)
+    assert feedback is not None
+    assert feedback.feedback_type == FeebackType.A
+    assert feedback.like is True
+    assert feedback.reason == "Good message"

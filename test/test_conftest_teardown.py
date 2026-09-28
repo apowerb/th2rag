@@ -6,8 +6,7 @@ kept alive by a pooled connection of an engine that was never disposed, so
 interpreter shutdown waited on it.
 
 The run is checked in a subprocess because the hang happens at interpreter
-exit. Only the exit is asserted: the async_db tests currently error on SQLite
-(JSONB columns), which is a separate issue and must not affect this check.
+exit. Only the exit is asserted, not the outcome of the tests it runs.
 """
 
 import os

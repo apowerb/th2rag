@@ -64,7 +64,10 @@ async def create_message(
             conversation_id, db
         )
         new_message = Message(
-            conversation_id=conversation_id, content=message_in.content, sender=message_in.sender
+            conversation_id=conversation_id,
+            content=message_in.content,
+            sender=message_in.sender,
+            type=schemas.MessageType.TEXT,
         )
         db.add(new_message)
         await db.commit()
