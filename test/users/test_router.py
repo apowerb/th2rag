@@ -98,3 +98,47 @@ async def test_delete_user_by_email_router():
         assert del_response.status_code == 204
         get_response = await client.get(f"/users/email/{email}")
         assert get_response.status_code == 404
+
+
+def _other_user(role: str) -> dict:
+    """A signed-in user distinct from the one each test creates."""
+    return {
+        "user_id": 9999,
+        "email": "someone-else@example.com",
+        "first_name": "Other",
+        "last_name": "User",
+        "role": role,
+        "created_at": "2026-01-01T00:00:00",
+        "updated_at": "2026-01-01T00:00:00",
+    }
+
+
+@pytest.mark.asyncio
+async def test_admin_can_read_another_user():
+    # get_current_user returns the stored role, "ADMIN" in uppercase.
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        payload = {"first_name": "Test", "last_name": "User", "email": "readbyadmin@example.com"}
+        create_response = await client.post("/users/", json=payload)
+        assert create_response.status_code == 201
+        user = create_response.json()
+        _authenticate_as(_other_user("ADMIN"))
+        by_id = await client.get(f"/users/{user['user_id']}")
+        assert by_id.status_code == 200, by_id.text
+        by_email = await client.get(f"/users/email/{user['email']}")
+        assert by_email.status_code == 200, by_email.text
+
+
+@pytest.mark.asyncio
+async def test_non_owner_cannot_read_another_user():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        payload = {"first_name": "Test", "last_name": "User", "email": "notmine@example.com"}
+        create_response = await client.post("/users/", json=payload)
+        assert create_response.status_code == 201
+        user = create_response.json()
+        _authenticate_as(_other_user("USER"))
+        by_id = await client.get(f"/users/{user['user_id']}")
+        assert by_id.status_code == 403, by_id.text
+        by_email = await client.get(f"/users/email/{user['email']}")
+        assert by_email.status_code == 403, by_email.text
