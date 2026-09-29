@@ -24,6 +24,11 @@ from docling.document_converter import (
 
 from th2rag.clients.storage.s3 import upload_file_to_s3
 from th2rag.config import settings
+from th2rag.rag.converters.statement_headings import (
+    parsed_pages_of,
+    promote_styled_statements,
+    release_parsed_pages,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -297,6 +302,19 @@ def convert_with_docling(
             result = converter_ocr.convert(docling_source_2)
             doc = result.document
             ocr_used = True
+
+        try:
+            # Numbered statements set in a face other than the body face (IPCC
+            # style) become section headers, so the chunker puts them in the
+            # heading path of the sub-statements. It runs on the final result:
+            # the OCR pass keeps the digital text layer's cells and fonts, and
+            # the pass ignores the cells that OCR added (no font name there).
+            if settings.pdf_promote_styled_statements:
+                promote_styled_statements(doc, parsed_pages_of(result))
+        finally:
+            # The parsed cells are only read by the pass above: drop them
+            # before the result is handed on.
+            release_parsed_pages(result)
 
         extracted_images = handle_images(doc, source, doc_id=doc_id)
         full_text = doc.export_to_markdown()

@@ -209,6 +209,16 @@ class Settings(BaseSettings):
         description="Maximum number of webhook delivery attempts"
     )
 
+    # PDF heading promotion: numbered statements ("A.1 ...") of two or more
+    # lines, set at body size in a face other than the body face, become
+    # section headers so the chunker carries them in the heading path of the
+    # sub-statements ("A.1.1 ..."). Off by default: it rewrites the document
+    # tree, and only reports laid out that way (IPCC summaries) need it.
+    pdf_promote_styled_statements: bool = Field(
+        default=False,
+        description="Promote numbered statements set in a distinct face to PDF section headers",
+    )
+
     #  IMAGE HANDLING SWITCH
     # "extract" (Default).
     # "describe" using a vlm
