@@ -788,6 +788,8 @@ The `rag/` module is responsible for the core Retrieval-Augmented Generation (RA
 convert_pdf(source: str) -> dict
 ```
 
+Heading levels come from Docling's heading-hierarchy stage (bookmarks, numbering, font style). With `PDF_PROMOTE_STYLED_STATEMENTS=true` (off by default), `converters/statement_headings.py` also promotes numbered statements set in a face other than the body face ("A.1 ..." paragraphs of IPCC-style reports) to section headers, so the chunker carries them in the heading path of the sub-statements ("A.1.1 ..."). It judges families of at least three such statements on the whole document, not one paragraph at a time, and leaves callouts, listings, quotes and footnotes alone.
+
 ### 🛫 2. Chunking
 
 * **`chunkers/hybrid_chunker.py`**: Wraps `docling`'s `HybridChunker` to split documents into semantic chunks.
