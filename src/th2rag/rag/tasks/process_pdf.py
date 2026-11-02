@@ -107,7 +107,7 @@ class PDFProcessor:
             local_source = source
 
             # Download from S3 if needed
-            if source.startswith("https://"):
+            if urlparse(source).scheme in ("http", "https"):
                 try:
                     logger.info(f"[Doc {doc_id}] [{file_index}/{total_files}] Downloading from S3...")
                     file_bytes = download_file_from_s3(source)
