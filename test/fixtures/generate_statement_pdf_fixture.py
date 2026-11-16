@@ -150,26 +150,51 @@ def _wrap(text: str, width: int) -> list:
     return lines + [line] if line else lines
 
 
-def _page_commands(blocks: list) -> bytes:
-    commands, y = "", 790
+def _layout(blocks: list) -> list:
+    """(font, size, text, [(line, baseline)]) per block, baselines in PDF points."""
+    placed, y = [], 790
     for font, size, text in blocks:
         y -= 14 if size > 11 else 4
         # Bold and Courier are wider than Helvetica: wrap them earlier.
         width = 72 if font in ("F2", "F3") else 80
+        lines = []
         for line in _wrap(text, width):
-            commands += f"BT\n/{font} {size} Tf\n50 {y} Td\n({_escape(line)}) Tj\nET\n"
+            lines.append((line, y))
             y -= size + 3
+        placed.append((font, size, text, lines))
         y -= 12
+    return placed
+
+
+def _page_commands(blocks: list) -> bytes:
+    commands = ""
+    for font, size, _text, lines in _layout(blocks):
+        for line, y in lines:
+            commands += f"BT\n/{font} {size} Tf\n50 {y} Td\n({_escape(line)}) Tj\nET\n"
     return commands.encode("latin-1")
 
 
-def make_statement_pdf() -> bytes:
+def _pages() -> list:
     pages: list = [[]]
     for block in BLOCKS:
         if block is None:
             pages.append([])
         else:
             pages[-1].append(block)
+    return pages
+
+
+def page_layouts() -> list:
+    """The placed blocks of every page, as drawn by make_statement_pdf.
+
+    Tests build the document items from it, so they do not depend on how a
+    layout model segments this synthetic page.
+    """
+    return [_layout(blocks) for blocks in _pages()]
+
+
+def make_statement_pdf() -> bytes:
+    pages = _pages()
 
     bodies: dict = {}
     font_objs = {}

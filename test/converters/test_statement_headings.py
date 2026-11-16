@@ -10,14 +10,19 @@ wrong heading. These tests cover:
 * the tree surgery on a hand-built DoclingDocument (no PDF, no models): a
   promoted list item leaves its ListGroup so that the HierarchicalChunker
   puts it in the heading path of the items that follow;
-* a real conversion of a generated PDF with four statements and a page of
-  material the pass must leave alone (bold callout, code listing, quote,
-  numbered footnotes), through convert_with_docling with the setting off and
-  on;
+* the real parsed cells of a generated PDF with four statements and a page
+  of material the pass must leave alone (bold callout, code listing, quote,
+  numbered footnotes). The document items are built from the blocks the
+  generator draws, not from a layout model: how the model segments this
+  synthetic page varies with the platform (on Linux it merges the paragraphs
+  of a statement and its sub-statements), and the pass is not what is under
+  test there;
+* the wiring in convert_with_docling: the pass runs only with the setting on,
+  and the parsed cells are released either way;
 * the IPCC AR6 Synthesis Report SPM itself, when TH2RAG_IPCC_SPM_PDF points to
   the file (18 statements, none of the 60 footnotes).
 
-Measured on Docling 2.130.0.
+Measured on Docling 2.130.0; the IPCC test also passes on Linux (Python 3.13).
 
 Run:
     PYTHONPATH=src .venv/bin/pytest test/converters/test_statement_headings.py -v --no-cov
@@ -436,6 +441,9 @@ def test_surgery_failure_restores_the_document(monkeypatch):
 # ---------------------------------------------------------------------------
 
 
+FIXTURE_PAGE = Size(width=612.0, height=842.0)
+
+
 @pytest.fixture(scope="module")
 def statement_pdf() -> str:
     sys.path.insert(0, FIXTURES_DIR)
@@ -444,12 +452,61 @@ def statement_pdf() -> str:
     return generate_statement_pdf_fixture()
 
 
+def _parsed_cells(pdf: str) -> dict:
+    """Page number -> parsed cells of the PDF, read by docling-parse alone."""
+    from pathlib import Path
+
+    from docling.backend.docling_parse_backend import (
+        ThreadedDoclingParseDocumentBackend,
+    )
+    from docling.datamodel.document import InputDocument
+
+    in_doc = InputDocument(
+        path_or_stream=Path(pdf),
+        format=InputFormat.PDF,
+        backend=ThreadedDoclingParseDocumentBackend,
+    )
+    try:
+        # page_no is 1-based, as the pipeline uses it for Page.page_no.
+        return {
+            page.page_no: page.get_segmented_page()
+            for page in in_doc._backend.iter_pages()
+        }
+    finally:
+        in_doc._backend.unload()
+
+
+def _fixture_document() -> DoclingDocument:
+    """One item per block the generator draws, at the place it draws it.
+
+    Headings get the level of their size (16 pt: 1, 13 pt: 2); every other
+    block is a text item, as the layout model labels the statements.
+    """
+    from generate_statement_pdf_fixture import page_layouts
+
+    doc = DoclingDocument(name="sample_statements")
+    for page_no, blocks in enumerate(page_layouts(), start=1):
+        doc.add_page(page_no=page_no, size=FIXTURE_PAGE)
+        for font, size, text, lines in blocks:
+            bbox = BoundingBox(
+                l=45.0,
+                t=lines[0][1] + size,
+                r=590.0,
+                b=lines[-1][1] - 0.3 * size,
+                coord_origin=CoordOrigin.BOTTOMLEFT,
+            )
+            prov = ProvenanceItem(page_no=page_no, bbox=bbox, charspan=(0, len(text)))
+            if font == "F2" and size > 11:
+                doc.add_heading(text=text, level=1 if size >= 16 else 2, prov=prov)
+            else:
+                doc.add_text(label="text", text=text, prov=prov)
+    return doc
+
+
 @pytest.fixture(scope="module")
 def converted_raw(statement_pdf):
-    """The document and its parsed cells, before any promotion."""
-    converter = pc._get_converter(InputFormat.PDF, False, restrict_format=False)
-    result = converter.convert(statement_pdf)
-    return result.document, parsed_pages_of(result)
+    """The fixture document and the PDF's real parsed cells, before any promotion."""
+    return _fixture_document(), _parsed_cells(statement_pdf)
 
 
 def test_setting_is_off_by_default():
@@ -503,15 +560,30 @@ def test_pass_leaves_callouts_code_quotes_and_footnotes_alone(converted_raw):
     )
 
 
-def test_convert_with_docling_promotes_only_when_enabled(statement_pdf, monkeypatch):
-    with _s3_patch():
-        off = pc.convert_with_docling(statement_pdf)["document"]
-        monkeypatch.setattr(settings, "pdf_promote_styled_statements", True)
-        on = pc.convert_with_docling(statement_pdf)["document"]
+def test_convert_with_docling_runs_the_pass_only_when_enabled(
+    statement_pdf, monkeypatch
+):
+    calls, released = [], []
+    real_release = pc.release_parsed_pages
 
-    assert _labels_by_prefix(off, "A.2 ") == ["text"]
-    assert _labels_by_prefix(on, "A.2 ") == ["section_header"]
-    assert _chunk_paths(on, "A.2.1")[0][-1].startswith("A.2 Widespread")
+    def fake_pass(doc, pages):
+        calls.append(sorted(pages))
+        return []
+
+    def recording_release(result):
+        had_cells = bool(parsed_pages_of(result))
+        real_release(result)
+        released.append((had_cells, bool(parsed_pages_of(result))))
+
+    monkeypatch.setattr(pc, "promote_styled_statements", fake_pass)
+    monkeypatch.setattr(pc, "release_parsed_pages", recording_release)
+    with _s3_patch():
+        pc.convert_with_docling(statement_pdf)
+        monkeypatch.setattr(settings, "pdf_promote_styled_statements", True)
+        pc.convert_with_docling(statement_pdf)
+
+    assert calls == [[1, 2, 3]]
+    assert released == [(True, False), (True, False)]
 
 
 # ---------------------------------------------------------------------------
