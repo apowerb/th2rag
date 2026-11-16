@@ -8,3 +8,7 @@ th2rag is the retrieval-augmented generation library of the apowerb stack.
 "apowerb" and "thaink²" are trademarks of thaink². Use of the Apache
 License 2.0 does not grant permission to use these marks. See
 https://github.com/apowerb/apowerb/blob/main/TRADEMARK.md.
+
+src/th2rag/rag/converters/statement_headings.py is adapted from a rule of
+the CleanMD engine, Copyright Evoltron Ltd, contributed under the Apache
+License 2.0 in https://github.com/apowerb/th2rag/pull/14.
